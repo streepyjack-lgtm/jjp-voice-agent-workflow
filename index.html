@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inbound AI Voice Agent — Process Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:       #06091a;
+  --surface:  #0c1230;
+  --surface2: #111a40;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.14);
+  --p1:       #4f7cff;
+  --p2:       #2ec4f0;
+  --p3:       #10d9b0;
+  --p1-glow:  rgba(79,124,255,0.18);
+  --p2-glow:  rgba(46,196,240,0.18);
+  --p3-glow:  rgba(16,217,176,0.18);
+  --text:     #e8eeff;
+  --muted:    #5e6f9a;
+  --white:    #ffffff;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════
+   NOISE TEXTURE OVERLAY
+═══════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATED GRID BG
+═══════════════════════════════════════════ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(79,124,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,124,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 900;
+  padding: 18px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid transparent;
+  transition: background 0.4s, border-color 0.4s, backdrop-filter 0.4s;
+}
+
+nav.scrolled {
+  background: rgba(6,9,26,0.88);
+  border-color: var(--border);
+  backdrop-filter: blur(16px);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--p1);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.nav-logo-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--p1);
+  box-shadow: 0 0 10px var(--p1);
+  animation: blink 2.4s ease infinite;
+}
+
+@keyframes blink {
+  0%,100%{ opacity:1; } 50%{ opacity:0.3; }
+}
+
+.nav-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-pill {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s;
+  text-transform: uppercase;
+}
+
+.nav-pill:hover { color: var(--text); border-color: var(--border2); }
+.nav-pill.active { color: var(--p1); border-color: var(--p1); }
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 32px 80px;
+  overflow: hidden;
+}
+
+/* Big radial glow blobs */
+.hero-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+.hero-glow-1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(79,124,255,0.12), transparent 70%);
+  top: -200px; left: -200px;
+  animation: float1 14s ease infinite;
+}
+.hero-glow-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(16,217,176,0.10), transparent 70%);
+  bottom: -100px; right: -100px;
+  animation: float2 18s ease infinite;
+}
+
+@keyframes float1 {
+  0%,100%{transform:translate(0,0);} 50%{transform:translate(60px,40px);}
+}
+@keyframes float2 {
+  0%,100%{transform:translate(0,0);} 50%{transform:translate(-40px,-60px);}
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(79,124,255,0.35);
+  background: rgba(79,124,255,0.08);
+  border-radius: 100px;
+  padding: 7px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--p1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  animation: fadeUp 0.8s 0.1s ease both;
+}
+
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--p1);
+  box-shadow: 0 0 8px var(--p1);
+  animation: blink 2s ease infinite;
+}
+
+.hero h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(44px, 7vw, 90px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 24px;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+
+.hero h1 em {
+  font-style: italic;
+  background: linear-gradient(90deg, var(--p1), var(--p2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: clamp(15px, 2vw, 18px);
+  color: var(--muted);
+  max-width: 540px;
+  margin: 0 auto 48px;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--p1);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 14px 28px;
+  border-radius: 100px;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: fadeUp 0.8s 0.4s ease both;
+  box-shadow: 0 0 32px rgba(79,124,255,0.35);
+}
+
+.hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(79,124,255,0.5);
+}
+
+.hero-cta svg { width:16px; height:16px; }
+
+/* Phase badges row */
+.hero-phases {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 64px;
+  animation: fadeUp 0.8s 0.5s ease both;
+}
+
+.phase-badge-hero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.phase-badge-hero .badge-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.ph1 .badge-num { background: rgba(79,124,255,0.15); color: var(--p1); }
+.ph2 .badge-num { background: rgba(46,196,240,0.15); color: var(--p2); }
+.ph3 .badge-num { background: rgba(16,217,176,0.15); color: var(--p3); }
+
+/* Scroll indicator */
+.scroll-hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeUp 1s 1s ease both;
+}
+
+.scroll-hint span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.scroll-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--muted), transparent);
+  animation: scrollPulse 2s ease infinite;
+}
+
+@keyframes scrollPulse {
+  0%,100%{ opacity:0.5; transform: scaleY(1); }
+  50%{ opacity:1; transform: scaleY(1.1); }
+}
+
+/* ═══════════════════════════════════════════
+   SECTION SHARED
+═══════════════════════════════════════════ */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 80px 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(30px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   PHASE SECTION HEADER
+═══════════════════════════════════════════ */
+.phase-section { padding-top: 0; padding-bottom: 0; }
+
+.phase-label-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.phase-label-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 100px;
+  color: #fff;
+}
+
+.phase-label-title {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.phase-label-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.phase-label-num.c1 { background: var(--p1); }
+.phase-label-num.c2 { background: var(--p2); }
+.phase-label-num.c3 { background: var(--p3); }
+
+/* ═══════════════════════════════════════════
+   STEP CARD
+═══════════════════════════════════════════ */
+.step-card {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  cursor: default;
+  position: relative;
+}
+
+.step-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border2);
+}
+
+.step-card.c1:hover { box-shadow: 0 12px 48px var(--p1-glow); border-color: rgba(79,124,255,0.3); }
+.step-card.c2:hover { box-shadow: 0 12px 48px var(--p2-glow); border-color: rgba(46,196,240,0.3); }
+.step-card.c3:hover { box-shadow: 0 12px 48px var(--p3-glow); border-color: rgba(16,217,176,0.3); }
+
+/* Left accent bar */
+.step-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 2px 0 0 2px;
+}
+.step-card.c1::before { background: var(--p1); }
+.step-card.c2::before { background: var(--p2); }
+.step-card.c3::before { background: var(--p3); }
+
+.step-icon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 0;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+
+.step-icon-col.c1 { background: rgba(79,124,255,0.06); }
+.step-icon-col.c2 { background: rgba(46,196,240,0.06); }
+.step-icon-col.c3 { background: rgba(16,217,176,0.06); }
+
+.step-emoji { font-size: 30px; line-height: 1; margin-bottom: 10px; }
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.step-num.c1 { color: var(--p1); }
+.step-num.c2 { color: var(--p2); }
+.step-num.c3 { color: var(--p3); }
+
+.step-body { padding: 24px 28px; }
+
+.step-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.step-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.step-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 11px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.step-tag.c1 { background: rgba(79,124,255,0.12); color: var(--p1); border: 1px solid rgba(79,124,255,0.25); }
+.step-tag.c2 { background: rgba(46,196,240,0.12); color: var(--p2); border: 1px solid rgba(46,196,240,0.25); }
+.step-tag.c3 { background: rgba(16,217,176,0.12); color: var(--p3); border: 1px solid rgba(16,217,176,0.25); }
+
+.step-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+/* ═══════════════════════════════════════════
+   CONNECTOR ARROW
+═══════════════════════════════════════════ */
+.connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0;
+  position: relative;
+}
+
+.connector-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+.connector-line {
+  width: 2px;
+  height: 32px;
+  border-radius: 2px;
+}
+.connector-line.c1 { background: linear-gradient(to bottom, var(--p1), var(--p1)); }
+.connector-line.c2 { background: linear-gradient(to bottom, var(--p2), var(--p2)); }
+.connector-line.c3 { background: linear-gradient(to bottom, var(--p3), var(--p3)); }
+
+.connector-arrow {
+  width: 0; height: 0;
+}
+.connector-arrow.c1 { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--p1); }
+.connector-arrow.c2 { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--p2); }
+.connector-arrow.c3 { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--p3); }
+
+.connector-label {
+  position: absolute;
+  left: calc(50% + 18px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+.connector-label.c1 { color: var(--p1); background: rgba(79,124,255,0.1); }
+.connector-label.c2 { color: var(--p2); background: rgba(46,196,240,0.1); }
+.connector-label.c3 { color: var(--p3); background: rgba(16,217,176,0.1); }
+
+/* Phase transition connector (taller) */
+.connector.phase-gap { padding: 20px 0; }
+
+/* ═══════════════════════════════════════════
+   OVERVIEW GRID
+═══════════════════════════════════════════ */
+.overview-section {
+  padding: 100px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-label {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.section-label h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 400;
+  color: var(--white);
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.section-label h2 em {
+  font-style: italic;
+  color: var(--p2);
+}
+
+.section-label p {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.ov-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.ov-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+
+.ov-card.c1::before { background: var(--p1); }
+.ov-card.c2::before { background: var(--p2); }
+.ov-card.c3::before { background: var(--p3); }
+
+.ov-card:hover { transform: translateY(-6px); }
+.ov-card.c1:hover { box-shadow: 0 16px 48px var(--p1-glow); border-color: rgba(79,124,255,0.3); }
+.ov-card.c2:hover { box-shadow: 0 16px 48px var(--p2-glow); border-color: rgba(46,196,240,0.3); }
+.ov-card.c3:hover { box-shadow: 0 16px 48px var(--p3-glow); border-color: rgba(16,217,176,0.3); }
+
+.ov-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+.ov-num.c1 { color: var(--p1); }
+.ov-num.c2 { color: var(--p2); }
+.ov-num.c3 { color: var(--p3); }
+
+.ov-emoji { font-size: 26px; line-height: 1; }
+
+.ov-divider {
+  width: 28px;
+  height: 1px;
+  background: var(--border);
+}
+
+.ov-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════
+   STATS BAR
+═══════════════════════════════════════════ */
+.stats-bar {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 48px 32px;
+  margin: 0;
+}
+
+.stats-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 48px;
+  font-style: italic;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-num.c1 { color: var(--p1); }
+.stat-num.c2 { color: var(--p2); }
+.stat-num.c3 { color: var(--p3); }
+.stat-num.c4 { color: #ff9f6b; }
+
+.stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 48px 32px;
+  border-top: 1px solid var(--border);
+}
+
+.footer-logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.footer-phone {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 500;
+  color: var(--p2);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 28px rgba(46,196,240,0.4);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+footer p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  nav { padding: 16px 20px; }
+  .nav-pills { display: none; }
+  .step-card { grid-template-columns: 70px 1fr; }
+  .overview-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stats-inner { grid-template-columns: repeat(2, 1fr); }
+  .connector-label { display: none; }
+  section { padding: 60px 20px; }
+}
+
+@media (max-width: 480px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-phases { flex-direction: column; align-items: center; }
+}
+
+/* ═══════════════════════════════════════════
+   DIVIDER BETWEEN PHASES
+═══════════════════════════════════════════ */
+.phase-divider {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div class="nav-logo" style="font-size:17px;font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:0.04em;color:var(--white);">
+      <div class="nav-logo-dot"></div>
+      JJP Solutions
+    </div>
+    <div style="width:1px;height:22px;background:var(--border);"></div>
+    <a href="tel:5632102651" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--p2);letter-spacing:0.06em;text-decoration:none;text-shadow:0 0 18px rgba(46,196,240,0.45);">
+      563-210-2651
+    </a>
+  </div>
+  <div class="nav-pills">
+    <a href="#flow" class="nav-pill">Process Flow</a>
+    <a href="#overview" class="nav-pill">Overview</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="hero-glow hero-glow-2"></div>
+
+  <div class="hero-eyebrow">
+    <div class="live-dot"></div>
+    Automated Pipeline
+  </div>
+
+  <h1>Inbound <em>AI Voice Agent</em><br>Process Flow</h1>
+  <p class="hero-sub">End-to-end automated appointment booking — from the first ring to the confirmed reminder, with zero manual intervention.</p>
+
+  <a href="#flow" class="hero-cta">
+    Explore the Flow
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M8 3v10M3 8l5 5 5-5"/>
+    </svg>
+  </a>
+
+  <div class="hero-phases">
+    <div class="phase-badge-hero ph1">
+      <span class="badge-num">Phase 01</span>
+      Inbound &amp; Intake
+    </div>
+    <div class="phase-badge-hero ph2">
+      <span class="badge-num">Phase 02</span>
+      Scheduling &amp; Booking
+    </div>
+    <div class="phase-badge-hero ph3">
+      <span class="badge-num">Phase 03</span>
+      Notifications &amp; Follow-Up
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</div>
+
+
+
+<!-- ═══ FLOW ═══ -->
+<div id="flow">
+
+  <!-- PHASE 1 -->
+  <section class="phase-section">
+    <div class="phase-label-row reveal">
+      <span class="phase-label-num c1">Phase 01</span>
+      <span class="phase-label-title">Inbound &amp; Intake</span>
+      <div class="phase-label-line"></div>
+    </div>
+
+    <div class="step-card c1 reveal">
+      <div class="step-icon-col c1">
+        <div class="step-emoji">📞</div>
+        <div class="step-num c1">01</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Inbound Call Received</div>
+          <div class="step-tag c1">Trigger</div>
+        </div>
+        <p class="step-desc">A customer dials the business line. The AI voice agent instantly answers — no hold music, no wait queues. The session is initialized and the call is ready for processing.</p>
+      </div>
+    </div>
+
+    <div class="connector reveal" style="transition-delay:0.1s">
+      <div class="connector-inner">
+        <div class="connector-line c1"></div>
+        <div class="connector-arrow c1"></div>
+        <div class="connector-label c1">Handoff to AI</div>
+      </div>
+    </div>
+
+    <div class="step-card c1 reveal" style="transition-delay:0.15s">
+      <div class="step-icon-col c1">
+        <div class="step-emoji">🗣️</div>
+        <div class="step-num c1">02</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Greet &amp; Collect Customer Info</div>
+          <div class="step-tag c1">Conversation</div>
+        </div>
+        <p class="step-desc">The agent greets the caller naturally and gathers essential details — name, phone number, email, and reason for the appointment — through guided conversational prompts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phase transition -->
+  <div class="phase-divider">
+    <div class="connector phase-gap reveal">
+      <div class="connector-inner">
+        <div class="connector-line c2"></div>
+        <div class="connector-arrow c2"></div>
+        <div class="connector-label c2">Info Confirmed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <section class="phase-section">
+    <div class="phase-label-row reveal">
+      <span class="phase-label-num c2">Phase 02</span>
+      <span class="phase-label-title">Scheduling &amp; Booking</span>
+      <div class="phase-label-line"></div>
+    </div>
+
+    <div class="step-card c2 reveal">
+      <div class="step-icon-col c2">
+        <div class="step-emoji">📅</div>
+        <div class="step-num c2">03</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Check Calendar Availability</div>
+          <div class="step-tag c2">Live Lookup</div>
+        </div>
+        <p class="step-desc">The agent queries the business calendar in real time, applying scheduling rules, buffer times, and staff availability to surface open slots for the caller to choose from.</p>
+      </div>
+    </div>
+
+    <div class="connector reveal" style="transition-delay:0.1s">
+      <div class="connector-inner">
+        <div class="connector-line c2"></div>
+        <div class="connector-arrow c2"></div>
+        <div class="connector-label c2">Slots Available</div>
+      </div>
+    </div>
+
+    <div class="step-card c2 reveal" style="transition-delay:0.15s">
+      <div class="step-icon-col c2">
+        <div class="step-emoji">✅</div>
+        <div class="step-num c2">04</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Book the Appointment</div>
+          <div class="step-tag c2">Confirmed</div>
+        </div>
+        <p class="step-desc">The caller selects a time, or the agent recommends the best available slot. The appointment is written to the calendar, the slot is locked, and the booking is recorded in the system.</p>
+      </div>
+    </div>
+
+    <div class="connector reveal" style="transition-delay:0.2s">
+      <div class="connector-inner">
+        <div class="connector-line c2"></div>
+        <div class="connector-arrow c2"></div>
+        <div class="connector-label c2">Record Update</div>
+      </div>
+    </div>
+
+    <div class="step-card c2 reveal" style="transition-delay:0.25s">
+      <div class="step-icon-col c2">
+        <div class="step-emoji">📝</div>
+        <div class="step-num c2">05</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Update Appointment &amp; Customer Records</div>
+          <div class="step-tag c2">Data Sync</div>
+        </div>
+        <p class="step-desc">The agent automatically syncs all confirmed details — customer name, contact info, appointment date, time, and service type — to the CRM and calendar system, ensuring records are accurate and up to date before any notifications are sent.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phase transition -->
+  <div class="phase-divider">
+    <div class="connector phase-gap reveal">
+      <div class="connector-inner">
+        <div class="connector-line c3"></div>
+        <div class="connector-arrow c3"></div>
+        <div class="connector-label c3">Booking Locked</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <section class="phase-section">
+    <div class="phase-label-row reveal">
+      <span class="phase-label-num c3">Phase 03</span>
+      <span class="phase-label-title">Notifications &amp; Follow-Up</span>
+      <div class="phase-label-line"></div>
+    </div>
+
+    <div class="step-card c3 reveal">
+      <div class="step-icon-col c3">
+        <div class="step-emoji">💬</div>
+        <div class="step-num c3">06</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Send Confirmation Message</div>
+          <div class="step-tag c3">Instant Send</div>
+        </div>
+        <p class="step-desc">The moment the appointment is booked, a confirmation is sent to the customer via SMS, email, or both — including appointment details, location or link, and a calendar invite.</p>
+      </div>
+    </div>
+
+    <div class="connector reveal" style="transition-delay:0.1s">
+      <div class="connector-inner">
+        <div class="connector-line c3"></div>
+        <div class="connector-arrow c3"></div>
+        <div class="connector-label c3">Reminder Queued</div>
+      </div>
+    </div>
+
+    <div class="step-card c3 reveal" style="transition-delay:0.15s">
+      <div class="step-icon-col c3">
+        <div class="step-emoji">⏰</div>
+        <div class="step-num c3">07</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Send Pre-Appointment Reminder</div>
+          <div class="step-tag c3">Automated</div>
+        </div>
+        <p class="step-desc">A reminder fires automatically — typically 24 hours and 1 hour before the appointment — with no manual input required. Each reminder includes an option to reschedule or cancel.</p>
+      </div>
+    </div>
+
+    <div class="connector reveal" style="transition-delay:0.2s">
+      <div class="connector-inner">
+        <div class="connector-line c3"></div>
+        <div class="connector-arrow c3"></div>
+        <div class="connector-label c3">Flow Complete</div>
+      </div>
+    </div>
+
+    <!-- Final success card -->
+    <div class="step-card c3 reveal" style="transition-delay:0.25s; background: linear-gradient(135deg, #0c1230 0%, #061a16 100%); border-color: rgba(16,217,176,0.2);">
+      <div class="step-icon-col c3">
+        <div class="step-emoji">🎯</div>
+        <div class="step-num c3">08</div>
+      </div>
+      <div class="step-body">
+        <div class="step-top">
+          <div class="step-title">Appointment Confirmed — Session Closed</div>
+          <div class="step-tag c3">Complete</div>
+        </div>
+        <p class="step-desc">The booking flow concludes successfully. The interaction is logged and the AI agent immediately becomes available to handle the next incoming call.</p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /flow -->
+
+<!-- ═══ OVERVIEW GRID ═══ -->
+<div class="overview-section" id="overview">
+  <div class="section-label reveal">
+    <h2>Full Process <em>at a Glance</em></h2>
+    <p>All 8 steps across 3 phases — automated end to end</p>
+  </div>
+
+  <div class="overview-grid" style="grid-template-columns: repeat(4, 1fr); max-width: 860px; margin: 0 auto;">
+    <div class="ov-card c1 reveal" style="transition-delay:0.05s">
+      <div class="ov-num c1">01</div>
+      <div class="ov-emoji">📞</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Inbound Call Received</div>
+    </div>
+    <div class="ov-card c1 reveal" style="transition-delay:0.1s">
+      <div class="ov-num c1">02</div>
+      <div class="ov-emoji">🗣️</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Greet &amp; Collect Info</div>
+    </div>
+    <div class="ov-card c2 reveal" style="transition-delay:0.15s">
+      <div class="ov-num c2">03</div>
+      <div class="ov-emoji">📅</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Check Calendar</div>
+    </div>
+    <div class="ov-card c2 reveal" style="transition-delay:0.2s">
+      <div class="ov-num c2">04</div>
+      <div class="ov-emoji">✅</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Book Appointment</div>
+    </div>
+    <div class="ov-card c2 reveal" style="transition-delay:0.25s">
+      <div class="ov-num c2">05</div>
+      <div class="ov-emoji">📝</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Update Records</div>
+    </div>
+    <div class="ov-card c3 reveal" style="transition-delay:0.3s">
+      <div class="ov-num c3">06</div>
+      <div class="ov-emoji">💬</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Send Confirmation</div>
+    </div>
+    <div class="ov-card c3 reveal" style="transition-delay:0.35s">
+      <div class="ov-num c3">07</div>
+      <div class="ov-emoji">⏰</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Send Reminder</div>
+    </div>
+    <div class="ov-card c3 reveal" style="transition-delay:0.4s">
+      <div class="ov-num c3">08</div>
+      <div class="ov-emoji">🎯</div>
+      <div class="ov-divider"></div>
+      <div class="ov-title">Session Closed</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">JJP Solutions</div>
+  <a href="tel:5632102651" class="footer-phone">563-210-2651</a>
+  <p>Inbound AI Voice Agent &nbsp;·&nbsp; Automated Appointment Pipeline &nbsp;·&nbsp; General Process Overview</p>
+</footer>
+
+<!-- ═══ JS ═══ -->
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  reveals.forEach(el => observer.observe(el));
+
+  // Active nav pill based on scroll position
+  const sections = document.querySelectorAll('[id]');
+  const navPills = document.querySelectorAll('.nav-pill');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 200) current = s.id;
+    });
+    navPills.forEach(p => {
+      p.classList.toggle('active', p.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>
